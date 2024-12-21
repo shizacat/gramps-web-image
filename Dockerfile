@@ -150,8 +150,8 @@ COPY alembic.ini /alembic/
 RUN tar -xzf /alembic/alembic.tar.gz -C /alembic
 
 # copy frontend build, from ghcr.io/gramps-project/grampsjs:v24.12.1
-ARG GRAMPS_FRONTEND_VERSION=v24.12.1
-COPY --from=ghcr.io/gramps-project/grampsjs:${GRAMPS_FRONTEND_VERSION} /usr/share/nginx/html /static
+# ARG GRAMPS_FRONTEND_VERSION=v24.12.1
+COPY --from=ghcr.io/gramps-project/grampsjs:v24.12.1 /usr/share/nginx/html /static
 # COPY --from=frontend /app/gramps-web/build /static
 
 # Disable[size]
