@@ -18,6 +18,7 @@ RUN git clone $GRAMPS_WEB_API_GIT_REPO && \
     git checkout $GRAMPS_WEB_API_VERSION && \
     # apply patches
     patch -p1 < /app/patches/gramps_web_api_0001_media_import.patch && \
+    patch -p1 < /app/patches/gramps_web_api_0002_pygobject_version.patch && \
     # build wheel package
     pip install --upgrade pip && \
     pip install wheel build && \
