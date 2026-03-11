@@ -3,7 +3,7 @@
 FROM python:3.12-slim as builder
 
 ARG GRAMPS_WEB_API_GIT_REPO=https://github.com/gramps-project/gramps-web-api.git
-ARG GRAMPS_WEB_API_VERSION=v2.6.0
+ARG GRAMPS_WEB_API_VERSION=v2.9.2
 # gramps_webapi-2.6.0-py3-none-any.whl
 
 RUN apt-get update && \
@@ -18,6 +18,7 @@ RUN git clone $GRAMPS_WEB_API_GIT_REPO && \
     git checkout $GRAMPS_WEB_API_VERSION && \
     # apply patches
     patch -p1 < /app/patches/gramps_web_api_0001_media_import.patch && \
+    patch -p1 < /app/patches/gramps_web_api_0002_pygobject_version.patch && \
     # build wheel package
     pip install --upgrade pip && \
     pip install wheel build && \
@@ -48,7 +49,7 @@ RUN cd /app/gramps-web-api && \
 # ----------------------------------------------------------------------------
 FROM debian:bookworm
 
-ARG GRAMPS_WEB_API_VERSION=2.6.0
+ARG GRAMPS_WEB_API_VERSION=2.9.2
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV GRAMPS_VERSION=52
@@ -73,12 +74,12 @@ WORKDIR /app
 # postgresql client (needed for PostgreSQL backend)
 RUN apt-get update \
     && apt-get install -y \
-        locales gettext wget unzip \
         appstream pkg-config libcairo2-dev \
         gir1.2-gtk-3.0 libgirepository1.0-dev libicu-dev \
         graphviz gir1.2-gexiv2-0.10 gir1.2-osmgpsmap-1.0 \
-        python3-pip python3-pil \
+        locales gettext wget python3-pip python3-pil \
         poppler-utils ffmpeg libavcodec-extra \
+        unzip \
         libpq-dev postgresql-client postgresql-client-common python3-psycopg2 \
         libgl1-mesa-dev libgtk2.0-dev libatlas-base-dev \
         tesseract-ocr tesseract-ocr-all \
@@ -94,6 +95,7 @@ ENV LC_ALL en_US.utf8
 
 # create directories
 RUN mkdir -p /root/.gramps/gramps$GRAMPS_VERSION/plugins
+# TODO: The '/app' directory will be created by the docker-entrypoint.sh script.
 
 # install PostgreSQL addon
 RUN wget https://github.com/gramps-project/addons/archive/refs/heads/master.zip \
@@ -151,7 +153,7 @@ RUN tar -xzf /alembic/alembic.tar.gz -C /alembic
 
 # copy frontend build, from ghcr.io/gramps-project/grampsjs:v24.12.1
 # ARG GRAMPS_FRONTEND_VERSION=v24.12.1
-COPY --from=ghcr.io/gramps-project/grampsjs:v24.12.1 /usr/share/nginx/html /static
+COPY --from=ghcr.io/gramps-project/grampsjs:v25.4.1 /usr/share/nginx/html /static
 # COPY --from=frontend /app/gramps-web/build /static
 
 # Disable[size]

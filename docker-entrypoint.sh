@@ -34,7 +34,8 @@ then
 fi
 
 # Run migrations for user database, if any
+cd /alembic
 python3 -m gramps_webapi --config /app/config/config.cfg user migrate
-cd /app/
+cd /app
 
 exec "$@"
