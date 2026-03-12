@@ -148,7 +148,7 @@ RUN ARCH=$(uname -m) && \
         python3 -m pip install --break-system-packages \
             --no-cache-dir \
             --extra-index-url https://www.piwheels.org/simple \
-            /tmp/pkg/gramps_webapi-${GRAMPS_WEB_API_VERSION}-py3-none-any.whl[ai]; \
+            /tmp/pkg/gramps_webapi-${GRAMPS_WEB_API_VERSION}-py3-none-any.whl; \
     fi \
     && rm -rf /tmp/pkg
 
