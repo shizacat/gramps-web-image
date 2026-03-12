@@ -2,11 +2,11 @@ diff --git a/pyproject.toml b/pyproject.toml
 index 1234567..abcdefg 100644
 --- a/pyproject.toml
 +++ b/pyproject.toml
-@@ -18,7 +18,7 @@ requires-python = ">=3.9"
+@@ -20,7 +20,7 @@ requires-python = ">=3.10"
  dependencies = [
-     "gramps[GUI,i18n]==5.2.*",
+     "gramps[all]>=6.0.4,<6.1.0",
 -    "PYGObject<=3.50.0",
 +    "PYGObject<3.50.0",
+     "orjson",
      "Click>=7.0",
      "Flask>=2.1.0",
-     "Flask-Caching>=2.0.0",

@@ -3,8 +3,7 @@
 FROM python:3.12-slim as builder
 
 ARG GRAMPS_WEB_API_GIT_REPO=https://github.com/gramps-project/gramps-web-api.git
-ARG GRAMPS_WEB_API_VERSION=v2.9.2
-# gramps_webapi-2.6.0-py3-none-any.whl
+ARG GRAMPS_WEB_API_VERSION=v3.7.1.1
 
 RUN apt-get update && \
     apt-get install -y git && \
@@ -49,31 +48,38 @@ RUN cd /app/gramps-web-api && \
 # ----------------------------------------------------------------------------
 FROM debian:bookworm
 
-ARG GRAMPS_WEB_API_VERSION=2.9.2
+ARG GRAMPS_WEB_API_VERSION=3.7.1.1
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV GRAMPS_VERSION=52
+ENV GRAMPS_VERSION=60
 ENV GRAMPS_API_CONFIG=/app/config/config.cfg
 # limit pytorch to 1 thread
 ENV OMP_NUM_THREADS=1
 # set config options
-ENV GRAMPSWEB_MEDIA_BASE_DIR=/app/media
-ENV GRAMPSWEB_STATIC_PATH=/static
 ENV GRAMPSWEB_USER_DB_URI=sqlite:////app/users/users.sqlite
+ENV GRAMPSWEB_MEDIA_BASE_DIR=/app/media
 ENV GRAMPSWEB_SEARCH_INDEX_DB_URI=sqlite:////app/indexdir/search_index.db
+# ENV GRAMPSWEB_STATIC_PATH=/app/static
+ENV GRAMPSWEB_STATIC_PATH=/static
 ENV GRAMPSWEB_THUMBNAIL_CACHE_CONFIG__CACHE_DIR=/app/thumbnail_cache
+ENV GRAMPSWEB_REQUEST_CACHE_CONFIG__CACHE_DIR=/app/cache/request_cache
+ENV GRAMPSWEB_PERSISTENT_CACHE_CONFIG__CACHE_DIR=/app/cache/persistent_cache
 ENV GRAMPSWEB_REPORT_DIR=/app/cache/reports
 ENV GRAMPSWEB_EXPORT_DIR=/app/cache/export
+ENV GRAMPSHOME=/root
+ENV GRAMPS_DATABASE_PATH=/root/.gramps/grampsdb
+
 # alembic config
 ENV ALEMBIC_CONFIG=/alembic/alembic.ini
+
+ENV PYTHONPATH="/usr/lib/python3/dist-packages"
 
 WORKDIR /app
 
 # install poppler (needed for PDF thumbnails)
 # ffmpeg (needed for video thumbnails)
 # postgresql client (needed for PostgreSQL backend)
-RUN apt-get update \
-    && apt-get install -y \
+RUN apt-get update && apt-get install -y \
         appstream pkg-config libcairo2-dev \
         gir1.2-gtk-3.0 libgirepository1.0-dev libicu-dev \
         graphviz gir1.2-gexiv2-0.10 gir1.2-osmgpsmap-1.0 \
@@ -82,8 +88,51 @@ RUN apt-get update \
         unzip \
         libpq-dev postgresql-client postgresql-client-common python3-psycopg2 \
         libgl1-mesa-dev libgtk2.0-dev libatlas-base-dev \
-        tesseract-ocr tesseract-ocr-all \
+        tesseract-ocr \
+        # tesseract-ocr-ara \
+        # tesseract-ocr-bul \
+        # tesseract-ocr-bre \
+        # tesseract-ocr-cat \
+        # tesseract-ocr-ces \
+        # tesseract-ocr-dan \
+        # tesseract-ocr-deu \
+        # tesseract-ocr-ell \
+        tesseract-ocr-eng \
+        # tesseract-ocr-epo \
+        # tesseract-ocr-spa \
+        # tesseract-ocr-fin \
+        # tesseract-ocr-fra \
+        # tesseract-ocr-gle \
+        # tesseract-ocr-heb \
+        # tesseract-ocr-hrv \
+        # tesseract-ocr-hun \
+        # tesseract-ocr-isl \
+        # tesseract-ocr-ind \
+        # tesseract-ocr-ita \
+        # tesseract-ocr-jpn \
+        # tesseract-ocr-kor \
+        # tesseract-ocr-lit \
+        # tesseract-ocr-lav \
+        # tesseract-ocr-mkd \
+        # tesseract-ocr-nor \
+        # tesseract-ocr-nld \
+        # tesseract-ocr-pol \
+        # tesseract-ocr-por \
+        # tesseract-ocr-ron \
+        tesseract-ocr-rus \
+        # tesseract-ocr-slk \
+        # tesseract-ocr-slv \
+        # tesseract-ocr-sqi \
+        # tesseract-ocr-srp \
+        # tesseract-ocr-swe \
+        # tesseract-ocr-tam \
+        # tesseract-ocr-tur \
+        # tesseract-ocr-ukr \
+        # tesseract-ocr-vie \
+        # tesseract-ocr-chi-sim \
+        # tesseract-ocr-chi-tra \
         libopenblas-dev cmake \
+        && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -93,43 +142,42 @@ ENV LANGUAGE en_US.utf8
 ENV LANG en_US.utf8
 ENV LC_ALL en_US.utf8
 
-# create directories
-RUN mkdir -p /root/.gramps/gramps$GRAMPS_VERSION/plugins
-# TODO: The '/app' directory will be created by the docker-entrypoint.sh script.
-
-# install PostgreSQL addon
-RUN wget https://github.com/gramps-project/addons/archive/refs/heads/master.zip \
-    && unzip -p master.zip addons-master/gramps$GRAMPS_VERSION/download/PostgreSQL.addon.tgz | \
-    tar -xvz -C /root/.gramps/gramps$GRAMPS_VERSION/plugins \
-    && unzip -p master.zip addons-master/gramps$GRAMPS_VERSION/download/SharedPostgreSQL.addon.tgz | \
-    tar -xvz -C /root/.gramps/gramps$GRAMPS_VERSION/plugins \
-    && unzip -p master.zip addons-master/gramps$GRAMPS_VERSION/download/FilterRules.addon.tgz | \
-    tar -xvz -C /root/.gramps/gramps$GRAMPS_VERSION/plugins \
-    && rm master.zip
+# install wheel first to enable binary packages for all pip installs
+RUN python3 -m pip install --break-system-packages --no-cache-dir wheel
 
 # install gunicorn
-RUN python3 -m pip install \
-        --break-system-packages \
-        --no-cache-dir \
-        --extra-index-url https://www.piwheels.org/simple \
-        gunicorn
+RUN python3 -m pip install --break-system-packages --no-cache-dir \
+    gunicorn
 
-# Disable[size]
-# Install PyTorch based on architecture
-# RUN ARCH=$(uname -m) && \
-#     if [ "$ARCH" != "armv7l" ]; then \
-#         # PyTorch and opencv not supported on armv7l
-#         python3 -m pip install \
-#             --break-system-packages \
-#             --no-cache-dir \
-#             --index-url https://download.pytorch.org/whl/cpu \
-#             torch; \
-#         python3 -m pip install \
-#             --break-system-packages \
-#             --no-cache-dir \
-#             --extra-index-url https://www.piwheels.org/simple \
-#             opencv-python opencv-contrib-python; \
-#     fi
+# Install PyICU (slow to compile on ARM, so pre-install in base image)
+RUN python3 -m pip install --break-system-packages --no-cache-dir \
+    PyICU
+
+# Install PyTorch and opencv
+# RUN python3 -m pip install --break-system-packages --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
+# RUN python3 -m pip install --break-system-packages --no-cache-dir \
+#     opencv-python opencv-contrib-python
+
+# Install AI dependencies
+# RUN python3 -m pip install --break-system-packages --no-cache-dir \
+#     'sentence-transformers>=4.1.0' \
+#     'accelerate' \
+#     'pydantic-ai[openai]>=1.0.0,<2.0.0'
+
+# download and cache sentence transformer model
+# RUN python3 -c "from sentence_transformers import SentenceTransformer; \
+# model = SentenceTransformer('sentence-transformers/distiluse-base-multilingual-cased-v2');"
+
+# install Gramps addons
+# __ create directories
+# __ TODO: The '/app' directory will be created by the docker-entrypoint.sh script.
+RUN mkdir -p /root/gramps/gramps$GRAMPS_VERSION/plugins && \
+    wget https://github.com/gramps-project/addons/archive/refs/heads/master.zip && \
+    for addon in PostgreSQL SharedPostgreSQL FilterRules JSON; do \
+        unzip -p master.zip addons-master/gramps$GRAMPS_VERSION/download/$addon.addon.tgz | \
+        tar -xvz -C /root/gramps/gramps$GRAMPS_VERSION/plugins; \
+    done && \
+    rm master.zip
 
 # Pin NumPy < 2.0 to avoid X86_V2 baseline requirement on older CPUs
 RUN python3 -m pip install \
@@ -159,7 +207,7 @@ RUN tar -xzf /alembic/alembic.tar.gz -C /alembic
 
 # copy frontend build, from ghcr.io/gramps-project/grampsjs:v24.12.1
 # ARG GRAMPS_FRONTEND_VERSION=v24.12.1
-COPY --from=ghcr.io/gramps-project/grampsjs:v25.4.1 /usr/share/nginx/html /static
+COPY --from=ghcr.io/gramps-project/grampsjs:v26.2.0 /usr/share/nginx/html /static
 # COPY --from=frontend /app/gramps-web/build /static
 
 # Disable[size]
