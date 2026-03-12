@@ -131,6 +131,12 @@ RUN python3 -m pip install \
 #             opencv-python opencv-contrib-python; \
 #     fi
 
+# Pin NumPy < 2.0 to avoid X86_V2 baseline requirement on older CPUs
+RUN python3 -m pip install \
+        --break-system-packages \
+        --no-cache-dir \
+        "numpy<2"
+
 # copy package source from builder and install
 COPY --from=builder /app/gramps-web-api/dist/gramps_webapi-${GRAMPS_WEB_API_VERSION}-py3-none-any.whl /tmp/pkg/
 RUN ARCH=$(uname -m) && \
