@@ -20,6 +20,8 @@ fi
 [ ! -d /app/cache/export ] && mkdir /app/cache/export
 [ ! -d /app/tmp ] && mkdir /app/tmp
 [ ! -d /app/persist ] && mkdir /app/persist
+[ ! -d /app/cache/request_cache ] && mkdir /app/cache/request_cache
+[ ! -d /app/cache/persistent_cache ] && mkdir /app/cache/persistent_cache
 
 # use the secret key if none is set (will be overridden by config file if present)
 if [ -z "$GRAMPSWEB_SECRET_KEY" ]
