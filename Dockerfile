@@ -48,7 +48,8 @@ RUN cd /app/gramps-web-api && \
 # ----------------------------------------------------------------------------
 FROM debian:bookworm
 
-ARG GRAMPS_WEB_API_VERSION=3.7.1.1
+# The name of library from _version.py
+ARG GRAMPS_WEB_API_VERSION=3.7.1
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV GRAMPS_VERSION=60
