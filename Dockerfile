@@ -1,9 +1,9 @@
 # Build API wheel package with patches
 # ----------------------------------------------------------------------------
-FROM python:3.12-slim as builder
+FROM python:3.13-slim-trixie as builder
 
 ARG GRAMPS_WEB_API_GIT_REPO=https://github.com/gramps-project/gramps-web-api.git
-ARG GRAMPS_WEB_API_VERSION=v3.7.1.1
+ARG GRAMPS_WEB_API_VERSION=v3.12.2
 
 RUN apt-get update && \
     apt-get install -y git && \
@@ -46,16 +46,16 @@ RUN cd /app/gramps-web-api && \
 
 # Main image
 # ----------------------------------------------------------------------------
-FROM debian:bookworm
+FROM debian:trixie
 
 # The name of library from _version.py
-ARG GRAMPS_WEB_API_VERSION=3.7.1
+ARG GRAMPS_WEB_API_VERSION=3.12.2
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV GRAMPS_VERSION=60
 ENV GRAMPS_API_CONFIG=/app/config/config.cfg
 # limit pytorch to 1 thread
-ENV OMP_NUM_THREADS=1
+# ENV OMP_NUM_THREADS=1
 # set config options
 ENV GRAMPSWEB_USER_DB_URI=sqlite:////app/users/users.sqlite
 ENV GRAMPSWEB_MEDIA_BASE_DIR=/app/media
@@ -73,8 +73,6 @@ ENV GRAMPS_DATABASE_PATH=/root/.gramps/grampsdb
 # alembic config
 ENV ALEMBIC_CONFIG=/alembic/alembic.ini
 
-ENV PYTHONPATH="/usr/lib/python3/dist-packages"
-
 WORKDIR /app
 
 # install poppler (needed for PDF thumbnails)
@@ -84,11 +82,11 @@ RUN apt-get update && apt-get install -y \
         appstream pkg-config libcairo2-dev \
         gir1.2-gtk-3.0 libgirepository1.0-dev libicu-dev \
         graphviz gir1.2-gexiv2-0.10 gir1.2-osmgpsmap-1.0 \
-        locales gettext wget python3-pip python3-pil \
+        locales gettext wget python3-pip python3-venv python3-pil \
         poppler-utils ffmpeg libavcodec-extra \
         unzip \
         libpq-dev postgresql-client postgresql-client-common python3-psycopg2 \
-        libgl1-mesa-dev libgtk2.0-dev libatlas-base-dev \
+        libgl1-mesa-dev libgtk2.0-dev \
         tesseract-ocr \
         # tesseract-ocr-ara \
         # tesseract-ocr-bul \
@@ -132,27 +130,31 @@ RUN apt-get update && apt-get install -y \
         # tesseract-ocr-vie \
         # tesseract-ocr-chi-sim \
         # tesseract-ocr-chi-tra \
-        libopenblas-dev cmake \
+        libopenblas-dev \
+        # NumPy from Debian: PyPI wheels 2.x require X86_V2 (old CPUs),
+        # and numpy<2 has no wheels for Python 3.13
+        python3-numpy \
         && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # set locale
-RUN localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
-ENV LANGUAGE en_US.utf8
-ENV LANG en_US.utf8
-ENV LC_ALL en_US.utf8
+ENV LANGUAGE=en_US.utf8
+ENV LANG=en_US.utf8
+ENV LC_ALL=en_US.utf8
+
+# Use a venv so pip can manage packages without conflicting with Debian-installed ones
+RUN python3 -m venv /venv --system-site-packages
+ENV PATH="/venv/bin:$PATH"
 
 # install wheel first to enable binary packages for all pip installs
-RUN python3 -m pip install --break-system-packages --no-cache-dir wheel
+RUN pip install --no-cache-dir wheel
 
 # install gunicorn
-RUN python3 -m pip install --break-system-packages --no-cache-dir \
-    gunicorn
+RUN pip install --no-cache-dir gunicorn
 
 # Install PyICU (slow to compile on ARM, so pre-install in base image)
-RUN python3 -m pip install --break-system-packages --no-cache-dir \
-    PyICU
+RUN pip install --no-cache-dir PyICU
 
 # Install PyTorch and opencv
 # RUN python3 -m pip install --break-system-packages --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
@@ -180,26 +182,22 @@ RUN mkdir -p /root/gramps/gramps$GRAMPS_VERSION/plugins && \
     done && \
     rm master.zip
 
-# Pin NumPy < 2.0 to avoid X86_V2 baseline requirement on older CPUs
-RUN python3 -m pip install \
-        --break-system-packages \
-        --no-cache-dir \
-        "numpy<2"
-
 # copy package source from builder and install
 COPY --from=builder /app/gramps-web-api/dist/gramps_webapi-${GRAMPS_WEB_API_VERSION}-py3-none-any.whl /tmp/pkg/
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "armv7l" ]; then \
-        python3 -m pip install \
-            --break-system-packages \
+        pip install \
             --no-cache-dir /tmp/pkg/gramps_webapi-${GRAMPS_WEB_API_VERSION}-py3-none-any.whl; \
     else \
-        python3 -m pip install --break-system-packages \
+        pip install \
             --no-cache-dir \
             --extra-index-url https://www.piwheels.org/simple \
             /tmp/pkg/gramps_webapi-${GRAMPS_WEB_API_VERSION}-py3-none-any.whl; \
     fi \
     && rm -rf /tmp/pkg
+
+# download and cache YFull tree for yclade
+RUN python3 -c "import yclade; yclade.tree.download_yfull_tree()"
 
 # copy alembic archive from builder
 COPY --from=builder /app/alembic.tar.gz /alembic/
@@ -208,7 +206,7 @@ RUN tar -xzf /alembic/alembic.tar.gz -C /alembic
 
 # copy frontend build, from ghcr.io/gramps-project/grampsjs:v24.12.1
 # ARG GRAMPS_FRONTEND_VERSION=v24.12.1
-COPY --from=ghcr.io/gramps-project/grampsjs:26.2.0 /usr/share/nginx/html /static
+COPY --from=ghcr.io/gramps-project/grampsjs:26.4.3 /usr/share/nginx/html /static
 # COPY --from=frontend /app/gramps-web/build /static
 
 # Disable[size]
