@@ -8,7 +8,8 @@ Based on:
 - Gramps 6.0 (`gramps60` addons), Debian Trixie
 
 My modifications:
-- disable pytorch and opencv
+- disable pytorch
+- OpenCV as `opencv-contrib-python-headless<5` instead of `opencv-contrib-python`
 - disable ai option for gramps-web-api (no sentence-transformers and model)
 - /app contains only user content
 - frontend is bundled into the image (`/static`)

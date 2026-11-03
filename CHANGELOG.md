@@ -4,7 +4,11 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/0.3.0/)
 
 ## [Unreleased]
 
+### Fixed
+- Install OpenCV (`opencv-contrib-python-headless<5`), it was missing ("OpenCV is not installed").
+
 ## [3.12.2-1] - 2026-11-03
+
 ### Added
 - Download and cache YFull tree for yclade at build time.
 - `docs/01.migration.md` with upgrade analysis.

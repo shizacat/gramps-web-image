@@ -157,9 +157,9 @@ RUN pip install --no-cache-dir gunicorn
 RUN pip install --no-cache-dir PyICU
 
 # Install PyTorch and opencv
-# RUN python3 -m pip install --break-system-packages --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
-# RUN python3 -m pip install --break-system-packages --no-cache-dir \
-#     opencv-python opencv-contrib-python
+# RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
+# headless: no GUI deps; <5: OpenCV 5 is not verified with gramps-web-api
+RUN pip install --no-cache-dir "opencv-contrib-python-headless<5"
 
 # Install AI dependencies
 # RUN python3 -m pip install --break-system-packages --no-cache-dir \
