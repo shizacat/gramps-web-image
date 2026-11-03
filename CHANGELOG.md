@@ -4,6 +4,8 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/0.3.0/)
 
 ## [Unreleased]
 
+## [3.12.2-2] - 2026-11-03
+
 ### Fixed
 - Install OpenCV (`opencv-contrib-python-headless<5`), it was missing ("OpenCV is not installed").
 
