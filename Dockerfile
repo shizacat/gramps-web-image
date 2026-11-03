@@ -3,7 +3,7 @@
 FROM python:3.13-slim-trixie as builder
 
 ARG GRAMPS_WEB_API_GIT_REPO=https://github.com/gramps-project/gramps-web-api.git
-ARG GRAMPS_WEB_API_VERSION=v3.12.2
+ARG GRAMPS_WEB_API_VERSION=v3.21.0
 
 RUN apt-get update && \
     apt-get install -y git && \
@@ -49,7 +49,7 @@ RUN cd /app/gramps-web-api && \
 FROM debian:trixie
 
 # The name of library from _version.py
-ARG GRAMPS_WEB_API_VERSION=3.12.2
+ARG GRAMPS_WEB_API_VERSION=3.21.0
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV GRAMPS_VERSION=60
@@ -210,7 +210,7 @@ RUN tar -xzf /alembic/alembic.tar.gz -C /alembic
 
 # copy frontend build, from ghcr.io/gramps-project/grampsjs:v24.12.1
 # ARG GRAMPS_FRONTEND_VERSION=v24.12.1
-COPY --from=ghcr.io/gramps-project/grampsjs:26.4.3 /usr/share/nginx/html /static
+COPY --from=ghcr.io/gramps-project/grampsjs:26.8.1 /usr/share/nginx/html /static
 # COPY --from=frontend /app/gramps-web/build /static
 
 # Disable[size]

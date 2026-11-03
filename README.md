@@ -3,8 +3,8 @@
 This image is contained: fix, update build.
 
 Based on:
-- [gramps-web-api](https://github.com/gramps-project/gramps-web-api) `v3.12.2` (Python package `gramps_webapi` 3.12.2)
-- [gramps-web](https://github.com/gramps-project/gramps-web) frontend `26.4.3` (`ghcr.io/gramps-project/grampsjs:26.4.3`)
+- [gramps-web-api](https://github.com/gramps-project/gramps-web-api) `v3.21.0` (Python package `gramps_webapi` 3.21.0)
+- [gramps-web](https://github.com/gramps-project/gramps-web) frontend `26.8.1` (`ghcr.io/gramps-project/grampsjs:26.8.1`)
 - Gramps 6.0 (`gramps60` addons), Debian Trixie
 
 My modifications:
