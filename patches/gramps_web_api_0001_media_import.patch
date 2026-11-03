@@ -1,15 +1,31 @@
 diff --git a/gramps_webapi/api/media_importer.py b/gramps_webapi/api/media_importer.py
-index 7c5e0d5..c431c5e 100644
+index bf96aa1..42cf0d5 100644
 --- a/gramps_webapi/api/media_importer.py
 +++ b/gramps_webapi/api/media_importer.py
-@@ -93,7 +93,9 @@ class MediaImporter:
-     def _check_disk_space_and_extract(self) -> str:
-         """Check disk space and extract files into a temporary directory."""
-         total_size = 0
--        with zipfile.ZipFile(self.file_name, "r") as zip_file:
-+        with zipfile.ZipFile(
-+            self.file_name, "r", metadata_encoding="utf-8"
-+        ) as zip_file:
-             for file_info in zip_file.infolist():
-                 total_size += file_info.file_size
+@@ -108,7 +108,7 @@ class MediaImporter:
+                 raise ValueError("Not enough free space on disk")
  
+             extracted: Dict[str, Tuple[str, int]] = {}
+-            with zipfile.ZipFile(self.file_name, "r") as zip_file:
++            with zipfile.ZipFile(self.file_name, "r", metadata_encoding="utf-8") as zip_file:
+                 for checksum, (member, file_size) in to_upload.items():
+                     member_path = os.path.realpath(os.path.join(temp_dir_real, member))
+                     if not member_path.startswith(temp_dir_real + os.sep):
+@@ -130,7 +130,7 @@ class MediaImporter:
+                 handles_by_path[path] = []
+             handles_by_path[path].append(obj_details["handle"])
+         checksums_by_handle: Dict[str, str] = {}
+-        with zipfile.ZipFile(self.file_name, "r") as zip_file:
++        with zipfile.ZipFile(self.file_name, "r", metadata_encoding="utf-8") as zip_file:
+             for file_info in zip_file.infolist():
+                 if file_info.is_dir() or file_info.filename not in handles_by_path:
+                     continue
+@@ -163,7 +163,7 @@ class MediaImporter:
+         uncompressed size.
+         """
+         to_upload: Dict[str, Tuple[str, int]] = {}
+-        with zipfile.ZipFile(self.file_name, "r") as zip_file:
++        with zipfile.ZipFile(self.file_name, "r", metadata_encoding="utf-8") as zip_file:
+             for file_info in zip_file.infolist():
+                 if file_info.is_dir():
+                     continue

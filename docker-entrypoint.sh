@@ -36,8 +36,10 @@ then
 fi
 
 # Run migrations for user database, if any
+# flock: containers sharing /app/users (e.g. web and celery) must not migrate concurrently
 cd /alembic
-python3 -m gramps_webapi --config /app/config/config.cfg user migrate
+flock /app/users/.migrate.lock \
+    python3 -m gramps_webapi --config /app/config/config.cfg user migrate
 cd /app
 
 exec "$@"

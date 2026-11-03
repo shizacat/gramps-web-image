@@ -3,7 +3,7 @@
 FROM python:3.13-slim-trixie as builder
 
 ARG GRAMPS_WEB_API_GIT_REPO=https://github.com/gramps-project/gramps-web-api.git
-ARG GRAMPS_WEB_API_VERSION=v3.21.0
+ARG GRAMPS_WEB_API_VERSION=v3.24.0
 
 RUN apt-get update && \
     apt-get install -y git && \
@@ -49,7 +49,7 @@ RUN cd /app/gramps-web-api && \
 FROM debian:trixie
 
 # The name of library from _version.py
-ARG GRAMPS_WEB_API_VERSION=3.21.0
+ARG GRAMPS_WEB_API_VERSION=3.24.0
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV GRAMPS_VERSION=60
@@ -78,7 +78,12 @@ WORKDIR /app
 # install poppler (needed for PDF thumbnails)
 # ffmpeg (needed for video thumbnails)
 # postgresql client (needed for PostgreSQL backend)
+# Noto fonts (needed to render non-Latin scripts in generated reports -
+# without them, Pango has no glyphs and PDF output is garbled)
 RUN apt-get update && apt-get install -y \
+        fonts-dejavu-core fonts-noto-core \
+        # fonts-noto-cjk: large, only for Chinese/Japanese/Korean
+        # fonts-noto-cjk \
         appstream pkg-config libcairo2-dev \
         gir1.2-gtk-3.0 libgirepository1.0-dev libicu-dev \
         graphviz gir1.2-gexiv2-0.10 gir1.2-osmgpsmap-1.0 \
@@ -162,8 +167,8 @@ RUN pip install --no-cache-dir PyICU
 
 # Install PyTorch and opencv
 # RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
-# headless: no GUI deps; <5: OpenCV 5 is not verified with gramps-web-api
-RUN pip install --no-cache-dir "opencv-contrib-python-headless<5"
+# keep in sync with the "face" extra in gramps-web-api pyproject.toml
+RUN pip install --no-cache-dir "opencv-python-headless>=4.8,<6"
 
 # Install AI dependencies
 # RUN python3 -m pip install --break-system-packages --no-cache-dir \
@@ -210,7 +215,7 @@ RUN tar -xzf /alembic/alembic.tar.gz -C /alembic
 
 # copy frontend build, from ghcr.io/gramps-project/grampsjs:v24.12.1
 # ARG GRAMPS_FRONTEND_VERSION=v24.12.1
-COPY --from=ghcr.io/gramps-project/grampsjs:26.8.1 /usr/share/nginx/html /static
+COPY --from=ghcr.io/gramps-project/grampsjs:26.10.2 /usr/share/nginx/html /static
 # COPY --from=frontend /app/gramps-web/build /static
 
 # Disable[size]
