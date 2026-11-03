@@ -8,6 +8,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/0.3.0/)
 
 ### Fixed
 - Install OpenCV (`opencv-contrib-python-headless<5`), it was missing ("OpenCV is not installed").
+- Media thumbnails failed with `KeyError: 'AVIF'`: install Pillow from PyPI (with AVIF support) instead of Debian `python3-pil`.
 
 ## [3.12.2-1] - 2026-11-03
 

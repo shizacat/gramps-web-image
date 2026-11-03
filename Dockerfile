@@ -82,7 +82,7 @@ RUN apt-get update && apt-get install -y \
         appstream pkg-config libcairo2-dev \
         gir1.2-gtk-3.0 libgirepository1.0-dev libicu-dev \
         graphviz gir1.2-gexiv2-0.10 gir1.2-osmgpsmap-1.0 \
-        locales gettext wget python3-pip python3-venv python3-pil \
+        locales gettext wget python3-pip python3-venv \
         poppler-utils ffmpeg libavcodec-extra \
         unzip \
         libpq-dev postgresql-client postgresql-client-common python3-psycopg2 \
@@ -152,6 +152,10 @@ RUN pip install --no-cache-dir wheel
 
 # install gunicorn
 RUN pip install --no-cache-dir gunicorn
+
+# install Pillow from PyPI (PyPI wheel includes AVIF support, unlike the apt package)
+# <12: gramps-web-api constraint
+RUN pip install --no-cache-dir "Pillow>=11.3,<12"
 
 # Install PyICU (slow to compile on ARM, so pre-install in base image)
 RUN pip install --no-cache-dir PyICU
