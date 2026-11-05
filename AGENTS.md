@@ -4,8 +4,8 @@
 
 ## Структура
 
-- `Dockerfile` — builder (checkout тега gramps-web-api, патчи, wheel, архив `alembic_users`) + основной образ на `debian:trixie`.
-- `docker-entrypoint.sh` — создание каталогов в `/app`, секретный ключ, миграции БД пользователей (под `flock`).
+- `Dockerfile` — стадии: `builder` (checkout тега gramps-web-api, патчи, wheel, архив `alembic_users`), `wheels` (компиляция PyGObject/pycairo/PyICU, как в upstream `Dockerfile.base`), основной образ на `debian:trixie` без компилятора и `-dev`.
+- `docker-entrypoint.sh` — создание каталогов в `/app`, секретный ключ, миграции БД пользователей (сериализует сам upstream).
 - `patches/` — патчи к gramps-web-api, накладываются `patch -p1` в builder.
 - `alembic.ini` — свой конфиг alembic (из upstream берётся только `alembic_users`).
 - `README.md`, `CHANGELOG.md`, `docs/01.migration.md` — документация.

@@ -1,9 +1,9 @@
 # Build API wheel package with patches
 # ----------------------------------------------------------------------------
-FROM python:3.13-slim-trixie as builder
+FROM python:3.13-slim-trixie AS builder
 
 ARG GRAMPS_WEB_API_GIT_REPO=https://github.com/gramps-project/gramps-web-api.git
-ARG GRAMPS_WEB_API_VERSION=v3.24.0
+ARG GRAMPS_WEB_API_VERSION=v3.25.1
 
 RUN apt-get update && \
     apt-get install -y git && \
@@ -28,6 +28,22 @@ RUN git clone $GRAMPS_WEB_API_GIT_REPO && \
 RUN cd /app/gramps-web-api && \
     tar -czf /app/alembic.tar.gz alembic_users
 
+# Build wheels for the Python packages that have no binary wheels,
+# so that the main image needs no compiler or development headers
+# ----------------------------------------------------------------------------
+FROM debian:trixie AS wheels
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential pkg-config python3-dev python3-venv \
+        libcairo2-dev libgirepository1.0-dev libicu-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# keep the PyGObject version in sync with patches/gramps_web_api_0002_pygobject_version.patch
+RUN python3 -m venv /venv \
+    && /venv/bin/pip wheel --no-cache-dir --wheel-dir /wheels 'PyGObject<3.50.0' pycairo PyICU
+
 # Build frontend, static
 # ----------------------------------------------------------------------------
 # FROM node:16.19.1-alpine3.17 as frontend
@@ -49,13 +65,11 @@ RUN cd /app/gramps-web-api && \
 FROM debian:trixie
 
 # The name of library from _version.py
-ARG GRAMPS_WEB_API_VERSION=3.24.0
+ARG GRAMPS_WEB_API_VERSION=3.25.1
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV GRAMPS_VERSION=60
 ENV GRAMPS_API_CONFIG=/app/config/config.cfg
-# limit pytorch to 1 thread
-# ENV OMP_NUM_THREADS=1
 # set config options
 ENV GRAMPSWEB_USER_DB_URI=sqlite:////app/users/users.sqlite
 ENV GRAMPSWEB_MEDIA_BASE_DIR=/app/media
@@ -80,19 +94,21 @@ WORKDIR /app
 # postgresql client (needed for PostgreSQL backend)
 # Noto fonts (needed to render non-Latin scripts in generated reports -
 # without them, Pango has no glyphs and PDF output is garbled)
-RUN apt-get update && apt-get install -y \
+# libcairo, libgirepository and libicu are needed by the wheels from the wheels stage
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
         fonts-dejavu-core fonts-noto-core \
         # fonts-noto-cjk: large, only for Chinese/Japanese/Korean
         # fonts-noto-cjk \
-        appstream pkg-config libcairo2-dev \
-        gir1.2-gtk-3.0 libgirepository1.0-dev libicu-dev \
+        libcairo2 libcairo-gobject2 libgirepository-1.0-1 libicu76 \
+        gir1.2-gtk-3.0 gir1.2-pango-1.0 \
         graphviz gir1.2-gexiv2-0.10 gir1.2-osmgpsmap-1.0 \
-        locales gettext wget python3-pip python3-venv \
-        poppler-utils ffmpeg libavcodec-extra \
+        locales gettext wget python3-venv \
+        poppler-utils poppler-data ffmpeg libavcodec-extra \
         unzip \
-        libpq-dev postgresql-client postgresql-client-common python3-psycopg2 \
-        libgl1-mesa-dev libgtk2.0-dev \
+        postgresql-client postgresql-client-common \
         tesseract-ocr \
+        tesseract-ocr-osd \
         # tesseract-ocr-ara \
         # tesseract-ocr-bul \
         # tesseract-ocr-bre \
@@ -135,11 +151,10 @@ RUN apt-get update && apt-get install -y \
         # tesseract-ocr-vie \
         # tesseract-ocr-chi-sim \
         # tesseract-ocr-chi-tra \
-        libopenblas-dev \
         # NumPy from Debian: PyPI wheels 2.x require X86_V2 (old CPUs),
         # and numpy<2 has no wheels for Python 3.13
         python3-numpy \
-        && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
+    && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -147,6 +162,9 @@ RUN apt-get update && apt-get install -y \
 ENV LANGUAGE=en_US.utf8
 ENV LANG=en_US.utf8
 ENV LC_ALL=en_US.utf8
+
+# limit OpenMP and BLAS (NumPy, OpenCV) to 1 thread
+ENV OMP_NUM_THREADS=1
 
 # Use a venv so pip can manage packages without conflicting with Debian-installed ones
 RUN python3 -m venv /venv --system-site-packages
@@ -159,26 +177,19 @@ RUN pip install --no-cache-dir wheel
 RUN pip install --no-cache-dir gunicorn
 
 # install Pillow from PyPI (PyPI wheel includes AVIF support, unlike the apt package)
-# <12: gramps-web-api constraint
-RUN pip install --no-cache-dir "Pillow>=11.3,<12"
+RUN pip install --no-cache-dir Pillow
 
-# Install PyICU (slow to compile on ARM, so pre-install in base image)
-RUN pip install --no-cache-dir PyICU
+# Install the wheels compiled in the wheels stage
+RUN --mount=type=bind,from=wheels,source=/wheels,target=/wheels \
+    pip install --no-cache-dir /wheels/*.whl
 
-# Install PyTorch and opencv
-# RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
+# Install opencv
 # keep in sync with the "face" extra in gramps-web-api pyproject.toml
 RUN pip install --no-cache-dir "opencv-python-headless>=4.8,<6"
 
-# Install AI dependencies
-# RUN python3 -m pip install --break-system-packages --no-cache-dir \
-#     'sentence-transformers>=4.1.0' \
-#     'accelerate' \
-#     'pydantic-ai[openai]>=1.0.0,<2.0.0'
-
-# download and cache sentence transformer model
-# RUN python3 -c "from sentence_transformers import SentenceTransformer; \
-# model = SentenceTransformer('sentence-transformers/distiluse-base-multilingual-cased-v2');"
+# Install AI dependencies (disabled)
+# keep in sync with the "ai" extra in gramps-web-api pyproject.toml
+# RUN pip install --no-cache-dir 'pydantic-ai-slim[openai,anthropic,google,mistral,groq,bedrock]>=1.101.0,<2.0.0'
 
 # install Gramps addons
 # __ create directories
@@ -215,23 +226,18 @@ RUN tar -xzf /alembic/alembic.tar.gz -C /alembic
 
 # copy frontend build, from ghcr.io/gramps-project/grampsjs:v24.12.1
 # ARG GRAMPS_FRONTEND_VERSION=v24.12.1
-COPY --from=ghcr.io/gramps-project/grampsjs:26.10.2 /usr/share/nginx/html /static
+COPY --from=ghcr.io/gramps-project/grampsjs:26.11.0 /usr/share/nginx/html /static
 # COPY --from=frontend /app/gramps-web/build /static
-
-# Disable[size]
-# download and cache sentence transformer model
-# RUN ARCH=$(uname -m) && \
-#     if [ "$ARCH" != "armv7l" ]; then \
-#         python3 -c "from sentence_transformers import SentenceTransformer; \
-# model = SentenceTransformer('sentence-transformers/distiluse-base-multilingual-cased-v2')"; \
-#     fi
 
 EXPOSE 5000
 
 COPY docker-entrypoint.sh /
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD gunicorn -w ${GUNICORN_NUM_WORKERS:-8} \
+# exec: gunicorn receives SIGTERM
+# --preload loads the app once before forking the workers, so they share its memory
+CMD exec gunicorn -w ${GUNICORN_NUM_WORKERS:-8} \
     -b 0.0.0.0:5000 \
     gramps_webapi.wsgi:app \
     --timeout ${GUNICORN_TIMEOUT:-120} \
-    --limit-request-line 8190
+    --limit-request-line 8190 \
+    --preload

@@ -1,12 +1,13 @@
 diff --git a/pyproject.toml b/pyproject.toml
-index 1234567..abcdefg 100644
+index a3e1cea..0e54687 100644
 --- a/pyproject.toml
 +++ b/pyproject.toml
-@@ -20,7 +20,7 @@ requires-python = ">=3.10"
+@@ -16,7 +16,7 @@ classifiers = [
+ requires-python = ">=3.11"
  dependencies = [
      "gramps[all]>=6.0.4,<6.1.0",
--    "PYGObject<=3.50.0",
-+    "PYGObject<3.50.0",
+-    "PYGObject<=3.50.0",  # keep in sync with Dockerfile.base
++    "PYGObject<3.50.0",  # keep in sync with Dockerfile.base
      "orjson",
      "Click>=7.0",
      "Flask>=2.1.0",

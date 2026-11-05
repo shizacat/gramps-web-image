@@ -4,6 +4,40 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/0.3.0/)
 
 ## [Unreleased]
 
+## [3.25.1-1] - 2026-11-05
+
+### Added
+- `wheels` build stage (as upstream `Dockerfile.base`): PyGObject (`<3.50.0`), pycairo, PyICU are compiled there and installed into the main image as wheels.
+- Packages `ca-certificates`, `gir1.2-pango-1.0`, `poppler-data`, `tesseract-ocr-osd` (as upstream).
+- `ENV OMP_NUM_THREADS=1` (limit OpenMP and BLAS of NumPy and OpenCV, as upstream).
+
+### Changed
+- Update gramps-web-api `v3.24.0` → `v3.25.1` (see "Изменения gramps-web-api" below).
+- Update frontend `grampsjs:26.10.2` → `grampsjs:26.11.0`.
+- Main image: `apt-get install --no-install-recommends`, only runtime libraries (`libcairo2`, `libcairo-gobject2`, `libgirepository-1.0-1`, `libicu76`) instead of `-dev` packages.
+- Pillow is no longer pinned `<12` (upstream unpinned it).
+- PostgreSQL driver comes from pip (`psycopg2-binary`, gramps-web-api dependency) instead of Debian `python3-psycopg2`.
+- gunicorn is started with `exec` (receives SIGTERM) and `--preload` (workers share the app memory).
+- Rewrite patch `gramps_web_api_0002_pygobject_version.patch` for the new `pyproject.toml`.
+- Commented AI dependencies updated to upstream `pydantic-ai-slim[...]`.
+
+### Removed
+- `flock` around the user DB migration: upstream serializes migrations itself (#1139).
+- Packages `appstream`, `pkg-config`, `python3-pip`, `libcairo2-dev`, `libgirepository1.0-dev`, `libicu-dev`, `libpq-dev`, `python3-psycopg2`, `libgl1-mesa-dev`, `libgtk2.0-dev`, `libopenblas-dev`.
+- Commented PyTorch and sentence-transformers steps (removed upstream together with semantic search).
+
+### Изменения gramps-web-api (v3.24.0 → v3.25.1)
+- Миграции БД пользователей: 17 → 18 (refresh-токены отзываются при смене пароля или отключении пользователя, #1129). Миграции теперь выполняются в одной транзакции под блокировкой — web и celery не мигрируют одновременно (#1139). Перед обновлением нужен бэкап `/app/users`.
+- Поиск: `sifts` заменён собственным поисковым индексом (SQLite FTS5 / PostgreSQL), исправлены утечки приватных имён через семьи и события (#1089). Старые таблицы удаляются, индекс строится заново в фоне, если настроена очередь задач (celery); иначе — вручную.
+- Семантический поиск удалён (#1088), `VECTOR_EMBEDDING_MODEL` игнорируется.
+- Приватность: private proxy заменён на `RestrictedDb` (#1107), приватные записи не влияют на оценку «вероятно жив» (#1101), 404 вместо 500 для приватных медиа и людей без ViewPrivate (#1122, #1084).
+- Безопасность: Authlib ≥ 1.9.0 из-за CVE-2026-96760 (#1140), нельзя изменить пользователя с более высокой ролью (#1132), регистрация и пароли отклоняются при отключённой локальной аутентификации (#1103).
+- Миниатюры: TIFF с XMP-метаданными не в bytes (#1114).
+- Производительность: сортировка и пагинация списков в SQL (#1110), индекс в таблице изменений undo (#1093), `--preload` для gunicorn (#1126).
+- Импорт: понятная причина ошибки импорта, надёжное определение GEDCOM 7 (#1120).
+- Удаление объектов по handle в фоне (#1131), прогресс задач хранится в result backend, а не в БД пользователей (#1118).
+- Pillow без верхнего ограничения версии, `psycopg2-binary` — прямая зависимость.
+
 ## [3.24.0-1] - 2026-11-03
 
 ### Added
