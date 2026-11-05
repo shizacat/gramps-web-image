@@ -8,7 +8,7 @@
 - `docker-entrypoint.sh` — создание каталогов в `/app`, секретный ключ, миграции БД пользователей (сериализует сам upstream).
 - `patches/` — патчи к gramps-web-api, накладываются `patch -p1` в builder.
 - `alembic.ini` — свой конфиг alembic (из upstream берётся только `alembic_users`).
-- `README.md`, `CHANGELOG.md`, `docs/01.migration.md` — документация.
+- `README.md`, `CHANGELOG.md` — документация.
 - `tmp/` — временные клоны upstream (`tmp/gwa` — gramps-web-api, `tmp/gw` — gramps-web), в `.gitignore`. Клонировать только сюда, не в `/tmp`.
 
 ## Окружение
@@ -46,4 +46,3 @@
 
 - `README.md`: блок «Based on» (версии API, фронтенда, Gramps, Debian) и список «My modifications» держать актуальными.
 - `CHANGELOG.md`: формат [Keep a Changelog 0.3.0](https://keepachangelog.com/en/0.3.0/), версии `<версия API>-<номер сборки>` (`3.24.0-1`), разделы Added/Changed/Removed/Fixed на английском. Изменения upstream — отдельным разделом на русском «Изменения gramps-web-api (vX → vY)» с номерами PR.
-- `docs/01.migration.md`: обновлять строку «Статус» после каждого шага.

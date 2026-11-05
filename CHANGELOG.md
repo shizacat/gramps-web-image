@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Keep a Changelog](https://keepachangelog.com/en/0.3.0/).
 
 ## [Unreleased]
+### Removed
+- `docs/01.migration.md`: upgrade rules are in `AGENTS.md`, history is in this changelog.
 
 ## [3.25.1-1] - 2026-11-05
 
